@@ -35,7 +35,7 @@ class DBMaker:
         conn = psycopg2.connect(**self.params)
         conn.autocommit = True
         with conn.cursor() as cur:
-            cur.execute(f'DROP DATABASE {db_name}')
+            cur.execute(f'DROP DATABASE IF EXISTS {db_name}')
             cur.execute(f'CREATE DATABASE {db_name}')
         conn.commit()
         conn.close()
