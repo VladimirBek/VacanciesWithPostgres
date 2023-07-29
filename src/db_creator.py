@@ -13,40 +13,30 @@ class DBMaker:
                     employer_name varchar(50),
                     salary_from integer,
                     salary_to integer,
-                    address text,
+                    url text,
                     city varchar(50),
-                    employer_id smallint)''')
+                    employer_id smallint,
+                    CONSTRAINT fk_employees_employee_id FOREIGN KEY(employer_id) REFERENCES
+                    employers(employer_id) ON DELETE CASCADE)''')
 
     @staticmethod
     def create_table_employers(cur):
         cur.execute('DROP TABLE IF EXISTS employers')
         cur.execute('CREATE TABLE employers(employer_id serial PRIMARY KEY,'
-                    'employer_name varchar(100),'
-                    'address text,'
+                    'employer_name text,'
+                    'url text,'
                     'city varchar(50),'
                     'vacancies_count smallint)')
 
     @staticmethod
-    def fill_vacancies_table(cur, vacancy_name, employer_name, salary_from, salary_to, address, city, employer_id):
+    def fill_vacancies_table(cur, vacancy_name, employer_name, salary_from, salary_to, url, city, employer_id):
         cur.execute(
-            f'''INSERT INTO vacancies (vacancy_name, salary_from, salary_to, address, city, employer_id)
-                VALUES ( 
-                {vacancy_name},
-                {employer_name} 
-                {salary_from}, 
-                {salary_to},
-                {address},
-                {city},
-                {employer_id});'''
-        )
+            'INSERT INTO vacancies (vacancy_name, employer_name, salary_from, salary_to, url, city, employer_id)'
+            'VALUES (%s,%s,%s,%s,%s,%s,%s)',
+            (vacancy_name, employer_name, salary_from, salary_to, url, city, employer_id))
 
     @staticmethod
-    def fill_employers_table(cur, employer_name, address, city, vacancies_count):
+    def fill_employers_table(cur, employer_name, url, city, vacancies_count):
         cur.execute(
-            f'''INSERT INTO vacancies (employer_name, address, city, vacancies_count)
-                        VALUES ( 
-                        {employer_name}, 
-                        {address}, 
-                        {city},
-                        {vacancies_count};'''
-        )
+            'INSERT INTO employers (employer_name, url, city, vacancies_count) VALUES (%s, %s, %s, %s)',
+            (employer_name, url, city, vacancies_count))
