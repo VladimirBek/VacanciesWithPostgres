@@ -1,65 +1,124 @@
-import json
-import os
-import psycopg2
-
-from src.config import config
-from src.db_creator import DBMaker
-from src.hh_api import HHApi
+from fill_tables import fill_tables
+from src.db_manager import DBManager
 
 
 def main():
-    hh = HHApi()
-    db_creator = DBMaker()
-    with open(os.path.join('src', 'employers_ids.json'), 'r', encoding='utf-8') as f:
-        ids = json.load(f)
-
-    params = config()
-    conn = psycopg2.connect(**params)
+    db_manger = DBManager()
+    conn = db_manger.start_connection()
     conn.autocommit = True
-    db_creator.create_database('ten_employers', conn.cursor())
-    conn.cursor().close()
-    conn.close()
-    params.update({'dbname': 'ten_employers'})
-    conn = psycopg2.connect(**params)
-    conn.autocommit = True
-    with conn.cursor() as cur:
-        db_creator.create_table_employers(cur)
-        db_creator.create_table_vacancies(cur)
-        employer_id = 0
-        for employer in ids:
-            employer_id += 1
-            items = hh.get_emps_vacancies(employer)
-            if items[0]['area']:
-                city = items[0]['area']['name']
-            else:
-                city = None
-            employer_name = items[0]['employer']['name']
-            db_creator.fill_employers_table(cur, employer_name,
-                                            items[0]['employer']['alternate_url'],
-                                            city,
-                                            len(items))
-            for item in items:
+    while True:
+        user_input = input('Выберете функцию\n'
+                           '1 - получить список всех компаний и количество вакансий у каждой компании\n'
+                           '2 - получить список всех вакансий с указанием названия компании, '
+                           'названия вакансии и зарплаты и ссылки на вакансию\n'
+                           '3 - получить среднюю зарплату по вакансиям\n'
+                           '4 - получить список всех вакансий, у которых зарплата выше средней по всем вакансиям\n'
+                           '5 - получить список всех вакансий, в названии которых содержатся переданные в метод слова, '
+                           'например “python”\n'
+                           '0 - выйти из программы\n'
+                           'Ваш выбор: ')
+        print()
+        if user_input == '1':
+            with conn.cursor() as cur:
+                for row in db_manger.get_companies_and_vacancies_count(cur):
+                    print(f'Компания {row[0]} (количество вакансий - {row[1]})')
+                    print()
+        elif user_input == '2':
+            with conn.cursor() as cur:
+                for row in db_manger.get_all_vacancies(cur):
+                    name, employer, salary_from, salary_to, url = row
+                    if salary_to and salary_from:
+                        print(f'Вакансия: {name}\n'
+                              f'Компания: {employer}\n'
+                              f'Зарплата от {salary_from} до {salary_to} руб.\n'
+                              f'Ссылка на вакансию {url}')
 
-                if item['salary']:
-                    salary_from = item['salary']['from']
-                    salary_to = item['salary']['to']
-                else:
-                    salary_from = None
-                    salary_to = None
-                if item['address']:
-                    city = item['area']['name']
-                else:
-                    city = None
+                    elif salary_from and not salary_to:
+                        print(f'Вакансия: {name}\n'
+                              f'Компания: {employer}\n'
+                              f'Зарплата от {salary_from} руб.\n'
+                              f'Ссылка на вакансию {url}')
+                        print()
+                    elif not salary_from and salary_to:
+                        print(f'Вакансия: {name}\n'
+                              f'Компания: {employer}\n'
+                              f'Зарплата до {salary_to} руб.\n'
+                              f'Ссылка на вакансию {url}')
+                        print()
+                    else:
+                        print(f'Вакансия: {name}\n'
+                              f'Компания: {employer}\n'
+                              f'Зарплата не указана\n'
+                              f'Ссылка на вакансию {url}')
+                        print()
+        elif user_input == '3':
+            with conn.cursor() as cur:
+                print(int(db_manger.get_avg_salary(cur)[0][0]), 'рублей - средняя зарплата по всем вакансиям')
 
-                db_creator.fill_vacancies_table(cur,
-                                                item['name'],
-                                                item['employer']['name'],
-                                                salary_from,
-                                                salary_to,
-                                                item['alternate_url'],
-                                                city, employer_id)
-    conn.close()
+        elif user_input == '4':
+            with conn.cursor() as cur:
+                avg = db_manger.get_avg_salary(cur)[0][0]
+                for row in db_manger.get_vacancies_with_higher_salary(cur, avg):
+                    name, employer, salary_from, salary_to, url = row[1:6]
+                    if salary_to and salary_from:
+                        print(f'Вакансия: {name}\n'
+                              f'Компания: {employer}\n'
+                              f'Зарплата от {salary_from} до {salary_to} руб.\n'
+                              f'Ссылка на вакансию {url}\n')
+
+                    elif salary_from and not salary_to:
+                        print(f'Вакансия: {name}\n'
+                              f'Компания: {employer}\n'
+                              f'Зарплата от {salary_from} руб.\n'
+                              f'Ссылка на вакансию {url}\n')
+                        print()
+                    elif not salary_from and salary_to:
+                        print(f'Вакансия: {name}\n'
+                              f'Компания: {employer}\n'
+                              f'Зарплата до {salary_to} руб.\n'
+                              f'Ссылка на вакансию {url}\n')
+                        print()
+                    else:
+                        print(f'Вакансия: {name}\n'
+                              f'Компания: {employer}\n'
+                              f'Зарплата не указана\n'
+                              f'Ссылка на вакансию {url}\n')
+                        print()
+        elif user_input == '5':
+            with conn.cursor() as cur:
+                user_word = input('Введите ключевое слово: ')
+                for row in db_manger.get_vacancies_with_keyword(cur, user_word):
+                    name, employer, salary_from, salary_to, url = row[1:6]
+                    if salary_to and salary_from:
+                        print(f'Вакансия: {name}\n'
+                              f'Компания: {employer}\n'
+                              f'Зарплата от {salary_from} до {salary_to} руб.\n'
+                              f'Ссылка на вакансию {url}\n')
+
+                    elif salary_from and not salary_to:
+                        print(f'Вакансия: {name}\n'
+                              f'Компания: {employer}\n'
+                              f'Зарплата от {salary_from} руб.\n'
+                              f'Ссылка на вакансию {url}\n')
+                        print()
+                    elif not salary_from and salary_to:
+                        print(f'Вакансия: {name}\n'
+                              f'Компания: {employer}\n'
+                              f'Зарплата до {salary_to} руб.\n'
+                              f'Ссылка на вакансию {url}\n')
+                        print()
+                    else:
+                        print(f'Вакансия: {name}\n'
+                              f'Компания: {employer}\n'
+                              f'Зарплата не указана\n'
+                              f'Ссылка на вакансию {url}\n')
+                        print()
+        elif user_input == '0':
+            return
+        else:
+            print('Введена неверная команда, попробуйте заново')
 
 
 if __name__ == '__main__':
+    fill_tables()
     main()
