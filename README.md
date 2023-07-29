@@ -2,7 +2,7 @@
 # Программа для получения и работы с вакансиями посредством СУБД
 Программа получет доступ к базе вакансий посредством API HH.ru
 
-Зависимости указаны в [**requirements.txt**](https://github.com/VladimirBek/coursework_5/blob/main/requirements.txt)
+Зависимости указаны в [**requirements.txt**](https://github.com/VladimirBek/cousework_5/blob/main/requirements.txt)
 
 Запуск програмы производится из файла [main](https://github.com/VladimirBek/cousework_5/blob/main/main.py)
 
