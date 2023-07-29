@@ -19,7 +19,7 @@ class HHApi:
                                        params={'employer_id': str(employer_id), 'page': page, 'per_page': 100})
                     result.extend(req.json()['items'])
                     print(f'Страница {page+1} из {pages} загружена')
-                print('Все страницы успешно загружены!')
+                print(f'Вакансии работодателя с id {employer_id} загружены!')
                 return result
             else:
                 return 'Ошибка подключения'

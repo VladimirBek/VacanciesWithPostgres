@@ -37,7 +37,7 @@ class DBManager:
     @staticmethod
     def get_avg_salary(cur):
         """Получает среднюю зарплату по вакансиям."""
-        cur.execute('SELECT AVG(salary_from, salary_to) AS avg_salary FROM vacancies')
+        cur.execute('SELECT AVG(salary_from + salary_to) AS avg_salary FROM vacancies')
         rows = cur.fetchall()
         return rows
 
@@ -45,7 +45,8 @@ class DBManager:
     def get_vacancies_with_higher_salary(cur, avg):
         """Получает список всех вакансий, у которых зарплата выше средней по всем вакансиям."""
         cur.execute(f'SELECT * FROM vacancies '
-                    f'WHERE AVG(salary_from, salary_to)>{avg}')
+                    f'WHERE (salary_from + salary_to)/2 >{avg}'
+                    f'GROUP BY vacancy_id')
         rows = cur.fetchall()
         return rows
 
@@ -53,4 +54,7 @@ class DBManager:
     def get_vacancies_with_keyword(cur, key_word):
         """Получает список всех вакансий, в названии которых содержатся переданные в метод слова, например “python”."""
         cur.execute(f"SELECT * FROM vacancies "
-                    f"WHERE vacancy_name LIKE '%{key_word}%'")
+                    f"WHERE vacancy_name LIKE '%{key_word.lower()}%'"
+                    f"OR vacancy_name LIKE '%{key_word.capitalize()}%'")
+        rows = cur.fetchall()
+        return rows
