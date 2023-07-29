@@ -25,9 +25,21 @@ def main():
     with conn.cursor() as cur:
         db_creator.create_table_employers(cur)
         db_creator.create_table_vacancies(cur)
+        employer_id = 0
         for employer in ids:
+            employer_id += 1
             items = hh.get_emps_vacancies(employer)
+            if items[0]['area']:
+                city = items[0]['area']['name']
+            else:
+                city = None
+            employer_name = items[0]['employer']['name']
+            db_creator.fill_employers_table(cur, employer_name,
+                                            items[0]['employer']['alternate_url'],
+                                            city,
+                                            len(items))
             for item in items:
+
                 if item['salary']:
                     salary_from = item['salary']['from']
                     salary_to = item['salary']['to']
@@ -35,16 +47,17 @@ def main():
                     salary_from = None
                     salary_to = None
                 if item['address']:
-                    city = item['address']['city']
+                    city = item['area']['name']
+                else:
+                    city = None
+
                 db_creator.fill_vacancies_table(cur,
                                                 item['name'],
                                                 item['employer']['name'],
                                                 salary_from,
                                                 salary_to,
                                                 item['alternate_url'],
-                                                city,
-
-                                                )
+                                                city, employer_id)
     conn.close()
 
 
