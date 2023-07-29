@@ -7,6 +7,7 @@ class HHApi:
         self.url_vacancies = 'https://api.hh.ru/vacancies/'
 
     def get_emps_vacancies(self, employer_id):
+        """Получает вакансии работодателей из файла"""
         result = []
         try:
             req = requests.get(self.url_vacancies,

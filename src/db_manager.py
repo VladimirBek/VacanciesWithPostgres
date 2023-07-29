@@ -10,6 +10,7 @@ class DBManager:
 
     @property
     def params(self):
+        """параметры для psycopg2"""
         conf = config()
         conf.update({'dbname': 'ten_employers'})
         return conf
